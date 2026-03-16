@@ -1,5 +1,7 @@
-## Base image with essential tools
-FROM ubuntu:24.04 AS base
+########################################
+## Android layer (Ubuntu 24.04)
+########################################
+FROM ubuntu:24.04 AS base-android
 
 COPY scripts/image-cleanup /bin
 
@@ -21,10 +23,11 @@ RUN apt-get update && apt-get install -y -q --no-install-recommends \
         git git-lfs diffstat ninja-build cmake \
         python3 python3-venv \
         libatomic1 \
+        vim-tiny android-tools-adb \
     && /bin/image-cleanup
 
 ## ARM64 Android build image with intermediate stuff
-FROM base AS arm64-android-build
+FROM base-android AS arm64-android-build
 
 # Add helper scripts
 COPY scripts/fetch-and-untar /bin
@@ -61,7 +64,63 @@ RUN    /bin/fetch-and-untar opencl-headers    ${OPENCL_URL}-Headers/archive/refs
     && rm -rf /tmp/opencl
 
 # Final ARM64 Android image
-FROM base AS arm64-android
+FROM base-android AS arm64-android
 
 # Add helper scripts
 COPY --from=arm64-android-build /opt /opt
+
+
+########################################
+## Debian layer (Debian trixie)
+########################################
+FROM debian:trixie AS base-debian
+
+COPY scripts/image-cleanup /bin
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+ENV ANDROID_NDK_ROOT="/opt/android-ndk-r28b"
+
+ENV HEXAGON_SDK_ROOT="/opt/hexagon/6.4.0.2"
+ENV HEXAGON_TOOLS_ROOT="${HEXAGON_SDK_ROOT}/tools/HEXAGON_Tools/19.0.04"
+ENV DEFAULT_HLOS_ARCH="64"
+ENV DEFAULT_TOOLS_VARIANT="toolv19"
+ENV DEFAULT_NO_QURT_INC="0"
+ENV DEFAULT_DSP_ARCH="v73"
+
+# Install basic tools & libs
+RUN apt-get update && apt-get install -y -q --no-install-recommends \
+        rsync wget curl less unzip zip xz-utils tree chrpath file \
+        openssh-client libatomic1 \
+        git git-lfs diffstat ninja-build cmake \
+        python3 python3-venv \
+        libatomic1 \
+        vim-tiny \
+        lsb-release \
+    && /bin/image-cleanup
+
+# Install clang/llvm tools & libs
+RUN apt-get update && apt-get install -y -q --no-install-recommends \
+        clang clang-19 llvm llvm-19 cross-config crossbuild-essential-arm64  \
+    && /bin/image-cleanup
+
+## ARM64 Debian build image with intermediate stuff
+FROM base-debian AS arm64-debian-build
+
+# Add helper scripts
+COPY scripts/fetch-and-untar /bin
+COPY scripts/fetch-and-unzip /bin
+COPY scripts/untar           /bin
+
+# Force bash for everything
+RUN ln -fs /bin/bash /bin/sh
+ENV SHELL="/bin/bash"
+
+# Install Hexagon SDK
+RUN /bin/fetch-and-untar hexagon-sdk https://github.com/snapdragon-toolchain/hexagon-sdk/releases/download/v6.4.0.2/hexagon-sdk-v6.4.0.2-amd64-lnx.tar.xz /opt/hexagon
+
+# Final arm64 Debian image
+FROM base-debian AS arm64-debian
+
+# Add helper scripts
+COPY --from=arm64-debian-build /opt /opt
