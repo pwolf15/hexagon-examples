@@ -79,8 +79,6 @@ COPY scripts/image-cleanup /bin
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-ENV ANDROID_NDK_ROOT="/opt/android-ndk-r28b"
-
 ENV HEXAGON_SDK_ROOT="/opt/hexagon/6.4.0.2"
 ENV HEXAGON_TOOLS_ROOT="${HEXAGON_SDK_ROOT}/tools/HEXAGON_Tools/19.0.04"
 ENV DEFAULT_HLOS_ARCH="64"
@@ -123,4 +121,9 @@ RUN /bin/fetch-and-untar hexagon-sdk https://github.com/snapdragon-toolchain/hex
 FROM base-debian AS arm64-debian
 
 # Add helper scripts
+COPY --from=arm64-debian-build /opt /opt
+
+# Final arm64 Linux image
+FROM base-debian AS arm64-linux
+
 COPY --from=arm64-debian-build /opt /opt
