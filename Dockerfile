@@ -1,7 +1,7 @@
 ########################################
 ## Android layer (Ubuntu 24.04)
 ########################################
-FROM ubuntu:24.04 AS base-android
+FROM docker-registry.qualcomm.com/library/ubuntu:24.04 AS base-android
 
 COPY scripts/image-cleanup /bin
 
@@ -73,7 +73,7 @@ COPY --from=arm64-android-build /opt /opt
 ########################################
 ## Debian layer (Debian trixie)
 ########################################
-FROM debian:trixie AS base-debian
+FROM docker-registry.qualcomm.com/library/debian:trixie AS base-debian
 
 COPY scripts/image-cleanup /bin
 
