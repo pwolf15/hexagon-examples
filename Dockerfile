@@ -79,6 +79,8 @@ COPY scripts/image-cleanup /bin
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+ENV ANDROID_NDK_ROOT="/opt/android-ndk-r28b"
+
 ENV HEXAGON_SDK_ROOT="/opt/hexagon/6.4.0.2"
 ENV HEXAGON_TOOLS_ROOT="${HEXAGON_SDK_ROOT}/tools/HEXAGON_Tools/19.0.04"
 ENV DEFAULT_HLOS_ARCH="64"
