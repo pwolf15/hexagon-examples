@@ -2,6 +2,7 @@
 ## Android layer (Ubuntu 24.04)
 ########################################
 FROM docker-registry.qualcomm.com/library/ubuntu:24.04 AS base-android
+LABEL org.opencontainers.image.source="https://github.com/snapdragon-toolchain/docker"
 
 COPY scripts/image-cleanup /bin
 
