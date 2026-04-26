@@ -4,8 +4,20 @@ FROM debian:trixie AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-ENV HEXAGON_SDK_ROOT="/opt/hexagon/6.4.0.2"
+ARG ANDROID_NDK_VERSION="r29"
+ARG HEXAGON_SDK_VERSION="6.4.0.2"
+ARG OPENCL_REL="2025.07.22"
+ARG LLVM_VERSION="21"
+ENV ANDROID_NDK_VERSION=${ANDROID_NDK_VERSION} \
+    HEXAGON_SDK_VERSION=${HEXAGON_SDK_VERSION} \
+    OPENCL_REL=${OPENCL_REL} \
+    LLVM_VERSION=${LLVM_VERSION}
+
+ENV ANDROID_NDK_ROOT="/opt/android-ndk-${ANDROID_NDK_VERSION}" \
+    HEXAGON_SDK_ROOT="/opt/hexagon/${HEXAGON_SDK_VERSION}"
 ENV HEXAGON_TOOLS_ROOT="${HEXAGON_SDK_ROOT}/tools/HEXAGON_Tools/19.0.04"
+ENV OPENCL_URL="https://github.com/KhronosGroup/OpenCL"
+
 ENV DEFAULT_HLOS_ARCH="64"
 ENV DEFAULT_TOOLS_VARIANT="toolv19"
 ENV DEFAULT_NO_QURT_INC="0"
@@ -31,21 +43,17 @@ RUN apt-get update && apt-get install -y -q --no-install-recommends \
     && /bin/image-cleanup
 
 # Install Hexagon SDK
-RUN /bin/fetch-and-untar hexagon-sdk https://github.com/snapdragon-toolchain/hexagon-sdk/releases/download/v6.4.0.2/hexagon-sdk-v6.4.0.2-amd64-lnx.tar.xz /opt/hexagon
+RUN /bin/fetch-and-untar hexagon-sdk https://github.com/snapdragon-toolchain/hexagon-sdk/releases/download/v${HEXAGON_SDK_VERSION}/hexagon-sdk-v${HEXAGON_SDK_VERSION}-amd64-lnx.tar.xz /opt/hexagon
 
 ### Build stages
 
 ## Android arm64 build stage with intermediate stuff
 FROM base AS arm64-android-build
 
-ENV ANDROID_NDK_ROOT="/opt/android-ndk-r29"
-
 # Install Android NDK
-RUN /bin/fetch-and-unzip android-ndk https://dl.google.com/android/repository/android-ndk-r29-linux.zip /opt
+RUN /bin/fetch-and-unzip android-ndk https://dl.google.com/android/repository/android-ndk-${ANDROID_NDK_VERSION}-linux.zip /opt
 
 # Install OpenCL SDK
-ENV OPENCL_REL="2025.07.22"
-ENV OPENCL_URL="https://github.com/KhronosGroup/OpenCL"
 RUN    /bin/fetch-and-untar opencl-headers    ${OPENCL_URL}-Headers/archive/refs/tags/v${OPENCL_REL}.tar.gz    /tmp/opencl \
     && /bin/fetch-and-untar opencl-clhpp      ${OPENCL_URL}-CLHPP/archive/refs/tags/v${OPENCL_REL}.tar.gz      /tmp/opencl \
     && /bin/fetch-and-untar opencl-icd-loader ${OPENCL_URL}-ICD-Loader/archive/refs/tags/v${OPENCL_REL}.tar.gz /tmp/opencl \
@@ -69,13 +77,11 @@ FROM base AS arm64-debian-build
 RUN apt-get update && apt-get install -y -q --no-install-recommends \
     cross-config crossbuild-essential-arm64 \
     && cd /tmp && wget https://apt.llvm.org/llvm.sh \
-    && chmod +x llvm.sh && ./llvm.sh 21 \
-    && update-alternatives --install /usr/bin/clang   clang    /usr/bin/clang-21 100 \
-                           --slave   /usr/bin/clang++ clang++  /usr/bin/clang++-21
+    && chmod +x llvm.sh && ./llvm.sh ${LLVM_VERSION} \
+    && update-alternatives --install /usr/bin/clang   clang    /usr/bin/clang-${LLVM_VERSION} 100 \
+                           --slave   /usr/bin/clang++ clang++  /usr/bin/clang++-${LLVM_VERSION}
 
 # Install OpenCL SDK (cross-compiled for aarch64-linux)
-ENV OPENCL_REL="2025.07.22"
-ENV OPENCL_URL="https://github.com/KhronosGroup/OpenCL"
 RUN    /bin/fetch-and-untar opencl-headers    ${OPENCL_URL}-Headers/archive/refs/tags/v${OPENCL_REL}.tar.gz    /tmp/opencl \
     && /bin/fetch-and-untar opencl-clhpp      ${OPENCL_URL}-CLHPP/archive/refs/tags/v${OPENCL_REL}.tar.gz      /tmp/opencl \
     && /bin/fetch-and-untar opencl-icd-loader ${OPENCL_URL}-ICD-Loader/archive/refs/tags/v${OPENCL_REL}.tar.gz /tmp/opencl \
@@ -96,7 +102,6 @@ RUN    /bin/fetch-and-untar opencl-headers    ${OPENCL_URL}-Headers/archive/refs
 
 ### Final Android arm64 image
 FROM base AS arm64-android
-ENV ANDROID_NDK_ROOT="/opt/android-ndk-r29"
 COPY --from=arm64-android-build /opt /opt
 RUN  /bin/image-cleanup
 
@@ -113,8 +118,8 @@ ENV OPENCL_SDK_ROOT="/usr/aarch64-linux-gnu"
 RUN apt-get update && apt-get install -y -q --no-install-recommends \
     cross-config crossbuild-essential-arm64 \
     && cd /tmp && wget https://apt.llvm.org/llvm.sh \
-    && chmod +x llvm.sh && ./llvm.sh 21 \
-    && update-alternatives --install /usr/bin/clang   clang    /usr/bin/clang-21 100 \
-                           --slave   /usr/bin/clang++ clang++  /usr/bin/clang++-21 
+    && chmod +x llvm.sh && ./llvm.sh ${LLVM_VERSION} \
+    && update-alternatives --install /usr/bin/clang   clang    /usr/bin/clang-${LLVM_VERSION} 100 \
+                           --slave   /usr/bin/clang++ clang++  /usr/bin/clang++-${LLVM_VERSION}
 
 RUN  /bin/image-cleanup
