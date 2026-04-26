@@ -88,7 +88,8 @@ RUN    /bin/fetch-and-untar opencl-headers    ${OPENCL_URL}-Headers/archive/refs
     -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
     -DOPENCL_ICD_LOADER_HEADERS_DIR=/usr/aarch64-linux-gnu/include \
     && cmake --build build   \
-    && cp build/libOpenCL.so /usr/aarch64-linux-gnu/lib \
+    && cp build/libOpenCL.so /usr/aarch64-linux-gnu/lib/libOpenCL.so.1 \
+    && ln -s libOpenCL.so.1 /usr/aarch64-linux-gnu/lib/libOpenCL.so \
     && rm -rf /tmp/opencl
 
 ### Final stages
@@ -103,7 +104,8 @@ RUN  /bin/image-cleanup
 FROM base AS arm64-linux
 COPY --from=arm64-debian-build /opt /opt
 COPY --from=arm64-debian-build /usr/aarch64-linux-gnu/include/CL /usr/aarch64-linux-gnu/include/CL
-COPY --from=arm64-debian-build /usr/aarch64-linux-gnu/lib/libOpenCL.so /usr/aarch64-linux-gnu/lib/libOpenCL.so
+COPY --from=arm64-debian-build /usr/aarch64-linux-gnu/lib/libOpenCL.so.1 /usr/aarch64-linux-gnu/lib/libOpenCL.so.1
+RUN ln -s libOpenCL.so.1 /usr/aarch64-linux-gnu/lib/libOpenCL.so
 # setting the OPENCL_SDK_ROOT env var so CMake can find them
 ENV OPENCL_SDK_ROOT="/usr/aarch64-linux-gnu"
 
