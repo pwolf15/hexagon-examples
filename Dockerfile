@@ -104,6 +104,8 @@ FROM base AS arm64-linux
 COPY --from=arm64-debian-build /opt /opt
 COPY --from=arm64-debian-build /usr/aarch64-linux-gnu/include/CL /usr/aarch64-linux-gnu/include/CL
 COPY --from=arm64-debian-build /usr/aarch64-linux-gnu/lib/libOpenCL.so /usr/aarch64-linux-gnu/lib/libOpenCL.so
+# setting the OPENCL_SDK_ROOT env var so CMake can find them
+ENV OPENCL_SDK_ROOT="/usr/aarch64-linux-gnu"
 
 # Install clang/llvm tools & libs
 RUN apt-get update && apt-get install -y -q --no-install-recommends \
