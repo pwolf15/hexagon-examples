@@ -4,8 +4,6 @@ FROM debian:trixie AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-ENV ANDROID_NDK_ROOT="/opt/android-ndk-r29"
-
 ENV HEXAGON_SDK_ROOT="/opt/hexagon/6.4.0.2"
 ENV HEXAGON_TOOLS_ROOT="${HEXAGON_SDK_ROOT}/tools/HEXAGON_Tools/19.0.04"
 ENV DEFAULT_HLOS_ARCH="64"
@@ -40,6 +38,8 @@ RUN /bin/fetch-and-untar hexagon-sdk https://github.com/snapdragon-toolchain/hex
 ## Android arm64 build stage with intermediate stuff
 FROM base AS arm64-android-build
 
+ENV ANDROID_NDK_ROOT="/opt/android-ndk-r29"
+
 # Install Android NDK
 RUN /bin/fetch-and-unzip android-ndk https://dl.google.com/android/repository/android-ndk-r29-linux.zip /opt
 
@@ -73,16 +73,37 @@ RUN apt-get update && apt-get install -y -q --no-install-recommends \
     && update-alternatives --install /usr/bin/clang   clang    /usr/bin/clang-21 100 \
                            --slave   /usr/bin/clang++ clang++  /usr/bin/clang++-21
 
+# Install OpenCL SDK (cross-compiled for aarch64-linux)
+ENV OPENCL_REL="2025.07.22"
+ENV OPENCL_URL="https://github.com/KhronosGroup/OpenCL"
+RUN    /bin/fetch-and-untar opencl-headers    ${OPENCL_URL}-Headers/archive/refs/tags/v${OPENCL_REL}.tar.gz    /tmp/opencl \
+    && /bin/fetch-and-untar opencl-clhpp      ${OPENCL_URL}-CLHPP/archive/refs/tags/v${OPENCL_REL}.tar.gz      /tmp/opencl \
+    && /bin/fetch-and-untar opencl-icd-loader ${OPENCL_URL}-ICD-Loader/archive/refs/tags/v${OPENCL_REL}.tar.gz /tmp/opencl \
+    && cp -r /tmp/opencl/OpenCL-Headers-${OPENCL_REL}/CL         /usr/aarch64-linux-gnu/include    \
+    && cp -r /tmp/opencl/OpenCL-CLHPP-${OPENCL_REL}/include/CL/* /usr/aarch64-linux-gnu/include/CL \
+    && cd /tmp/opencl/OpenCL-ICD-Loader-${OPENCL_REL}     \
+    && cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+    -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc \
+    -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
+    -DOPENCL_ICD_LOADER_HEADERS_DIR=/usr/aarch64-linux-gnu/include \
+    && cmake --build build   \
+    && cp build/libOpenCL.so /usr/aarch64-linux-gnu/lib \
+    && rm -rf /tmp/opencl
+
 ### Final stages
 
 ### Final Android arm64 image
 FROM base AS arm64-android
+ENV ANDROID_NDK_ROOT="/opt/android-ndk-r29"
 COPY --from=arm64-android-build /opt /opt
 RUN  /bin/image-cleanup
 
 ### Final Debian arm64 image
 FROM base AS arm64-linux
 COPY --from=arm64-debian-build /opt /opt
+COPY --from=arm64-debian-build /usr/aarch64-linux-gnu/include/CL /usr/aarch64-linux-gnu/include/CL
+COPY --from=arm64-debian-build /usr/aarch64-linux-gnu/lib/libOpenCL.so /usr/aarch64-linux-gnu/lib/libOpenCL.so
 
 # Install clang/llvm tools & libs
 RUN apt-get update && apt-get install -y -q --no-install-recommends \
