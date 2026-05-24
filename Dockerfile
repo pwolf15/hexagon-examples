@@ -42,6 +42,12 @@ RUN apt-get update && apt-get install -y -q --no-install-recommends \
         vim android-tools-adb \
     && /bin/image-cleanup
 
+# Install clang/llvm tools & libs
+RUN cd /tmp && wget https://apt.llvm.org/llvm.sh \
+    && chmod +x llvm.sh && ./llvm.sh ${LLVM_VERSION} \
+    && update-alternatives --install /usr/bin/clang   clang    /usr/bin/clang-${LLVM_VERSION} 100 \
+                           --slave   /usr/bin/clang++ clang++  /usr/bin/clang++-${LLVM_VERSION}
+
 # Install Hexagon SDK
 RUN /bin/fetch-and-untar hexagon-sdk https://github.com/snapdragon-toolchain/hexagon-sdk/releases/download/v${HEXAGON_SDK_VERSION}/hexagon-sdk-v${HEXAGON_SDK_VERSION}-amd64-lnx.tar.xz /opt/hexagon
 
@@ -73,13 +79,9 @@ RUN    /bin/fetch-and-untar opencl-headers    ${OPENCL_URL}-Headers/archive/refs
 ## Debian arm64 build stage with intermediate stuff
 FROM base AS arm64-debian-build
 
-# Install clang/llvm tools & libs
+# Install cross-build essentials
 RUN apt-get update && apt-get install -y -q --no-install-recommends \
-    cross-config crossbuild-essential-arm64 \
-    && cd /tmp && wget https://apt.llvm.org/llvm.sh \
-    && chmod +x llvm.sh && ./llvm.sh ${LLVM_VERSION} \
-    && update-alternatives --install /usr/bin/clang   clang    /usr/bin/clang-${LLVM_VERSION} 100 \
-                           --slave   /usr/bin/clang++ clang++  /usr/bin/clang++-${LLVM_VERSION}
+    cross-config crossbuild-essential-arm64
 
 # Install OpenCL SDK (cross-compiled for aarch64-linux)
 RUN    /bin/fetch-and-untar opencl-headers    ${OPENCL_URL}-Headers/archive/refs/tags/v${OPENCL_REL}.tar.gz    /tmp/opencl \
@@ -114,12 +116,8 @@ RUN ln -s libOpenCL.so.1 /usr/aarch64-linux-gnu/lib/libOpenCL.so
 # setting the OPENCL_SDK_ROOT env var so CMake can find them
 ENV OPENCL_SDK_ROOT="/usr/aarch64-linux-gnu"
 
-# Install clang/llvm tools & libs
+# Install cross-build essentials
 RUN apt-get update && apt-get install -y -q --no-install-recommends \
-    cross-config crossbuild-essential-arm64 \
-    && cd /tmp && wget https://apt.llvm.org/llvm.sh \
-    && chmod +x llvm.sh && ./llvm.sh ${LLVM_VERSION} \
-    && update-alternatives --install /usr/bin/clang   clang    /usr/bin/clang-${LLVM_VERSION} 100 \
-                           --slave   /usr/bin/clang++ clang++  /usr/bin/clang++-${LLVM_VERSION}
+    cross-config crossbuild-essential-arm64
 
 RUN  /bin/image-cleanup
