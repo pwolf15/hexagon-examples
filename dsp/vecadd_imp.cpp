@@ -4,6 +4,16 @@
 
 extern "C" {
 
+
+
+void *aligned_alloc(size_t alignment, size_t size) {
+
+    void *p = 0;
+
+    return posix_memalign(&p, alignment, size) ? 0 : p;
+
+}
+
 int vecadd_open(const char *uri, remote_handle64 *handle) {
   (void)uri;
   void *p = std::malloc(1);

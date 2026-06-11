@@ -50,6 +50,7 @@ else()
     set(skel_srcs
         ${CMAKE_CURRENT_BINARY_DIR}/vecadd_skel
         ${CMAKE_CURRENT_SOURCE_DIR}/dsp/vecadd_imp.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/dsp/vecmul_imp.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/dsp/version.c
     )
 

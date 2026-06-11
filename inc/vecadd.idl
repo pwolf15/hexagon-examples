@@ -11,4 +11,10 @@ interface vecadd : remote_handle64 {
     rout sequence<float> result
   );
 
+  long mul_vec(
+    in sequence<float> a,
+    in sequence<float> b,
+    rout sequence<float> result
+  );
+
 };

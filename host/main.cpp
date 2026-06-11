@@ -44,6 +44,18 @@ int main() {
         printf("%f + %f = %f\n", a[i], b[i], out[i]);
     }
 
+    // multiply
+    ret = vecadd_mul_vec(
+        h,
+        a.data(), N,
+        b.data(), N,
+        out.data(), N
+    );
+
+    for (int i = 0; i < N; ++i) {
+        printf("%f * %f = %f\n", a[i], b[i], out[i]);
+    }
+
     vecadd_close(h);
     
     return 0;
