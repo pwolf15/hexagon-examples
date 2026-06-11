@@ -1,0 +1,30 @@
+{
+  "name": "Hexagon Android Dev",
+  "image": "hexagon-android",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "remoteUser": "root",
+  "containerEnv": {
+    "ANDROID_NDK_ROOT": "/opt/android-ndk-r29",
+    "HEXAGON_SDK_ROOT": "/opt/hexagon/6.6.0.0",
+    "HEXAGON_TOOLS_ROOT": "/opt/hexagon/6.6.0.0/tools/HEXAGON_Tools/19.0.07",
+    "DEFAULT_HLOS_ARCH": "64",
+    "DEFAULT_TOOLS_VARIANT": "toolv19",
+    "DEFAULT_DSP_ARCH": "v73"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "cmake.configureOnOpen": false,
+        "C_Cpp.intelliSenseEngine": "disabled",
+        "clangd.path": "/usr/bin/clangd-21",
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}
