@@ -11,6 +11,7 @@ set(common_incs
     ${CMAKE_CURRENT_BINARY_DIR}
     ${HEXAGON_SDK_ROOT}/incs
     ${HEXAGON_SDK_ROOT}/incs/stddef
+    ${HEXAGON_SDK_ROOT}/libs/worker_pool/inc
 )
 
 set(NO_QURT_INC 1)
@@ -23,23 +24,33 @@ if(${OS_TYPE} MATCHES "HLOS")
 
     build_idl(inc/vecadd.idl vecadd)
 
-    # Host executable
     add_executable(vecadd_app
         host/main.cpp
     )
 
     target_include_directories(vecadd PRIVATE ${common_incs})
-    target_include_directories(vecadd_app PRIVATE
-        ${common_incs}
-        ${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1
-    )
+    target_include_directories(vecadd_app PRIVATE ${common_incs})
 
     choose_dsprpc(${DSP_TYPE} dsprpc)
 
     link_custom_library(vecadd ${dsprpc})
     link_custom_library(vecadd_app ${dsprpc})
 
-    target_link_libraries(vecadd_app vecadd c++_shared)
+    if(${CMAKE_SYSTEM_NAME} MATCHES "Android")
+        target_include_directories(vecadd_app PRIVATE
+            ${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1
+        )
+        target_link_libraries(vecadd_app vecadd c++_shared)
+    else()
+        target_link_directories(vecadd PRIVATE
+            ${HEXAGON_SDK_ROOT}/ipc/fastrpc/remote/ship/UbuntuARM_aarch64
+        )
+        target_link_directories(vecadd_app PRIVATE
+            ${HEXAGON_SDK_ROOT}/ipc/fastrpc/remote/ship/UbuntuARM_aarch64
+        )
+        target_link_libraries(vecadd cdsprpc)
+        target_link_libraries(vecadd_app vecadd cdsprpc)
+    endif()
 
     copy_binaries(vecadd_app vecadd)
 
@@ -52,9 +63,18 @@ else()
         ${CMAKE_CURRENT_SOURCE_DIR}/dsp/vecadd_imp.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/dsp/vecmul_imp.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/dsp/version.c
+        /opt/hexagon/6.6.0.0/libs/worker_pool/src/worker_pool.cpp
     )
 
     add_library(vecadd_skel_OBJS OBJECT ${skel_srcs})
+
+
+        # link_custom_library(vecadd_skel_OBJS worker_pool_static)
+
+    target_compile_options(vecadd_skel_OBJS PRIVATE
+        -mhvx-ieee-fp
+        -mhvx-qfloat
+    )
 
     target_include_directories(vecadd_skel_OBJS PRIVATE
         ${common_incs}
@@ -88,6 +108,36 @@ else()
         )
     endif()
 
+
+
+    #     add_library(vecadd_q SHARED
+
+    #     dsp/test_main.cpp
+
+    #     dsp/vecadd_imp.cpp
+
+    # )
+
+    # target_include_directories(vecadd_q PRIVATE
+
+    #     ${common_incs}
+
+    #     ${CMAKE_CURRENT_BINARY_DIR}
+
+    # )
+
+    # target_link_libraries(vecadd_q
+
+    #     ${HEXAGON_LIB_DIR}/${HEXAGON_ARCH}/G0/pic/libc++abi.so.1
+
+    #     ${HEXAGON_LIB_DIR}/${HEXAGON_ARCH}/G0/pic/libc++.so.1
+
+    # )
+
+    # runMainOnHexagonSim(vecadd_q)
+
     copy_binaries(vecadd_skel)
+
+    
 
 endif()

@@ -1,0 +1,7 @@
+#!/bin/bash
+
+DEST=/home/radxa/vecadd
+BOARD=radxa@<board-ip>
+
+rsync -avz _ReleaseG_aarch64/ship/vecadd_app hexagon_ReleaseG_toolv19_v75/ship/libvecadd_skel.so $BOARD:$DEST/
+rsync -avz _ReleaseG_aarch64/ship/libvecadd.so  $BOARD:$DEST/ship/

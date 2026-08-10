@@ -17,4 +17,6 @@ interface vecadd : remote_handle64 {
     rout sequence<float> result
   );
 
+  long get_vtcm(rout unsigned long avail, rout unsigned long max_page, rout unsigned long pages);
+
 };

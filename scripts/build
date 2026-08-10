@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# CPU
+cd /workspaces/hexagon-examples && rm -rf _ReleaseG_aarch64 && mkdir _ReleaseG_aarch64 && cd _ReleaseG_aarch64 && cmake .. -G Ninja   -DOS_TYPE=HLOS   -DCMAKE_SYSTEM_NAME=UbuntuARM   -DHLOS_ARCH=64   -DDSP_TYPE=3   -DPREBUILT_LIB_DIR=UbuntuARM_aarch64   -DCMAKE_BUILD_TYPE=Release   -DHEXAGON_SDK_ROOT=/opt/hexagon/6.6.0.0   -DHEXAGON_CMAKE_ROOT=/opt/hexagon/6.6.0.0/build/cmake   -DCMAKE_C_COMPILER=/usr/bin/aarch64-linux-gnu-gcc   -DCMAKE_CXX_COMPILER=/usr/bin/aarch64-linux-gnu-g++   -DCMAKE_ASM_COMPILER=/usr/bin/aarch64-linux-gnu-gcc   -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=$PWD/ship   -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=$PWD/ship   -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=$PWD/ship && cmake --build . -v
+
+# DSP
+cd /workspaces/hexagon-examples && rm -rf hexagon_ReleaseG_toolv19_v75 && bash /opt/hexagon/6.6.0.0/build/cmake/cmake_configure.bash /workspaces/hexagon-examples hexagon BUILD=ReleaseG DSP_ARCH=v75 DOMAIN_FLAG=3 NO_QURT_INC=1
