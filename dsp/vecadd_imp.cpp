@@ -8,6 +8,7 @@
 #include "vecadd.h"
 #include "worker_pool.h"
 #include <cstdlib>
+#include <cstring>
 #include <hexagon_types.h>
 
 #include "inc/chain_k.h"
@@ -51,33 +52,66 @@ int vecadd_get_vtcm(remote_handle64 h, unsigned int *avail,
   return rc;
 }
 
+constexpr int kLanes = 32;
+constexpr int kVecBytes = 128;
+
+inline float bits_to_float(int32_t b) {
+  float f;
+  std::memcpy(&f, &b, sizeof f);
+  return f;
+}
+
+inline float hvx_lane(HVX_Vector v, int lane) {
+  return bits_to_float(Q6_R_vextract_VR(v, lane * 4));
+}
+
+inline float hvx_tree_sum_qf32(HVX_Vector acc_qf32) {
+  for (int s = kVecBytes / 2; s >= 4; s >>= 1) {
+    HVX_Vector rot = Q6_V_vror_VR(Q6_Vsf_equals_Vqf32(acc_qf32), s);
+    acc_qf32 = Q6_Vqf32_vadd_Vqf32Vsf(acc_qf32, rot);
+  }
+  alignas(128) float lanes[kLanes];
+  *reinterpret_cast<HVX_Vector*>(lanes) = Q6_Vsf_equals_Vqf32(acc_qf32);
+  return lanes[0];
+}
+
 int vecadd_sum_vec(remote_handle64 h, const float *a, int aLen, float *results,
                    int resultsLen) {
 
   // scalar accumulate
-  results[0] = 0.0f;
-  for (int i = 0; i < 1024; ++i) {
-    results[0] += a[i];
-  }
+  float scalar_sum = 0.0f;
+  for (int i = 0; i < aLen; ++i)
+    scalar_sum += a[i];
 
-  // vector accumulate
-  const HVX_Vector *va = (const HVX_Vector *)a;
-  HVX_Vector vresult = Q6_V_vsplat_R(0x0);
-  results[1] = 0.0f;
-  for (int i = 0; i < 32; ++i) {
-    vresult = Q6_Vqf32_vadd_Vqf32Vsf(vresult, va[i]);
-  }
-  (void)va;
+  // qf32 accumulate
+  const HVX_Vector *va = reinterpret_cast<const HVX_Vector *>(a);
+  const int nvec = aLen / kLanes;
+  const int tail = aLen % kLanes;
 
-  HVX_Vector vresultsf = Q6_Vsf_equals_Vqf32(vresult);
-  for (int i = 0; i < 32; ++i) {
-    union {
-      int32_t i;
-      float f;
-    } u;
-    u.i = Q6_R_vextract_VR(vresultsf, i << 2);
-    results[1] += u.f;
+  HVX_Vector vacc = Q6_V_vsplat_R(0);
+  float vector_sum = 0.0f;
+
+  for (int i = 0; i < nvec; ++i)
+    vacc = Q6_Vqf32_vadd_Vqf32Vsf(vacc, va[i]);
+
+  if (tail) { // unaligned load + valign splice
+    const float *tp = a + nvec * kLanes;
+    HVX_Vector in = *reinterpret_cast<const HVX_UVector*>(tp);
+    HVX_Vector pad = Q6_V_vsplat_R(0);
+    HVX_Vector t = Q6_V_valign_VVR(in, pad, tail * 4);
+    vacc = Q6_Vqf32_vadd_Vqf32Vsf(vacc, t);
   }
+  // IEEE final reduction
+#ifdef LINEAR_REDUCE
+  const HVX_Vector vsf = Q6_Vsf_equals_Vqf32(vacc);
+  for (int i = 0; i < kLanes; ++i)
+    vector_sum += hvx_lane(vsf, i);
+#else   
+  vector_sum = hvx_tree_sum_qf32(vacc);
+#endif
+
+  results[0] = scalar_sum;
+  results[1] = vector_sum;
 
   return 0;
 }
