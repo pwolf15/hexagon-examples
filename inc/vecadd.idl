@@ -11,7 +11,11 @@ interface vecadd : remote_handle64 {
     rout sequence<float> result
   );
 
-  long sum_vec(in sequence<float> a, rout sequence<float> result, rout sequence<long> debug);
+  long sum_vec_scalar(in sequence<float> a, rout sequence<float> result, rout sequence<long> debug);
+
+  long sum_vec_hvx(in sequence<float> a, rout sequence<float> result, rout sequence<long> debug);
+
+  long sum_vec_hvx_interleaved(in sequence<float> a, rout sequence<float> result, rout sequence<long> debug);
 
   long mul_vec(
     in sequence<float> a,

@@ -290,18 +290,22 @@ int main() {
   for (int i = 0; i < 1024; ++i) {
     a_vec[i] = (1.0f + i) * i;
   }
-  float results[2];
+  float results[3];
 
-  int debug[2];
-  vecadd_sum_vec(h, a_vec.data(), 1024, results, 2, debug, 2);
+  float result_scalar, result_hvx, result_hvx_interleaved;
+  int debug_scalar, debug_hvx, debug_hvx_interleaved;
+  vecadd_sum_vec_scalar(h, a_vec.data(), a_vec.size(), &result_scalar, 1, &debug_scalar, 1);
+  vecadd_sum_vec_hvx(h, a_vec.data(), a_vec.size(), &result_hvx, 1, &debug_hvx, 1);
+  vecadd_sum_vec_hvx_interleaved(h, a_vec.data(), a_vec.size(), &result_hvx_interleaved, 1, &debug_hvx_interleaved, 1);
 
   double dsum = 0.0;
   for (int i = 0; i < 1024; ++i)
     dsum += (double)a_vec[i];
   float ref = (float)dsum;
 
-  printf("\n\naccum result: %f %f host oracle %f\n\ncycles scalar %d cycles hvx %d\n\n", results[0], results[1],
-         ref, debug[0], debug[1]);
+  printf("\n\naccum dsp scalar %f hvx: %f interleaved %f host oracle %f\n\ncycles scalar %d cycles "
+         "hvx %d cycles hvx interleaved %d\n\n",
+         result_scalar, result_hvx, result_hvx_interleaved, ref, debug_scalar, debug_hvx, debug_hvx_interleaved);
 
   vecadd_close(h);
   free_buf(sa);

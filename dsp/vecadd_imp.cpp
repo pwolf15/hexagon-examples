@@ -75,7 +75,7 @@ inline float hvx_tree_sum_qf32(HVX_Vector acc_qf32) {
   return lanes[0];
 }
 
-int vecadd_sum_vec(remote_handle64 h, const float *a, int aLen, float *results,
+int vecadd_sum_vec_scalar(remote_handle64 h, const float *a, int aLen, float *results,
                    int resultsLen, int* debug, int debugLen) {
 
   // scalar accumulate
@@ -85,18 +85,26 @@ int vecadd_sum_vec(remote_handle64 h, const float *a, int aLen, float *results,
     scalar_sum += a[i];
   uint64_t cycles_end = HAP_perf_get_pcycles();
 
+  debug[0] = (int)(cycles_end - cycles_start);
+  results[0] = scalar_sum;
+  
+  return 0;
+}
+
+int vecadd_sum_vec_hvx(remote_handle64 h, const float *a, int aLen, float *results,
+                   int resultsLen, int* debug, int debugLen) {
+
+  // scalar accumulate
+  uint64_t cycles_start = HAP_perf_get_pcycles();
+
   // qf32 accumulate
   const HVX_Vector *va = reinterpret_cast<const HVX_Vector *>(a);
   const int nvec = aLen / kLanes;
   const int tail = aLen % kLanes;
 
   HVX_Vector vacc = Q6_V_vsplat_R(0);
-  float vector_sum = 0.0f;
 
-  FARF(ALWAYS, "scalar reduce cycles %d", (int)(cycles_end - cycles_start));
-  debug[0] = (int)(cycles_end - cycles_start);
 
-  cycles_start = HAP_perf_get_pcycles();
   for (int i = 0; i < nvec; ++i)
     vacc = Q6_Vqf32_vadd_Vqf32Vsf(vacc, va[i]);
 
@@ -113,15 +121,41 @@ int vecadd_sum_vec(remote_handle64 h, const float *a, int aLen, float *results,
   for (int i = 0; i < kLanes; ++i)
     vector_sum += hvx_lane(vsf, i);
 #else   
-  vector_sum = hvx_tree_sum_qf32(vacc);
+  float vector_sum = hvx_tree_sum_qf32(vacc);
 #endif
 
-  cycles_end = HAP_perf_get_pcycles();
+  uint64_t cycles_end = HAP_perf_get_pcycles();
 
-  results[0] = scalar_sum;
-  results[1] = vector_sum;
+  debug[0] = (int)(cycles_end - cycles_start);
+  results[0] = vector_sum;
 
-  debug[1] = (int)(cycles_end - cycles_start);
+  return 0;
+}
+
+int vecadd_sum_vec_hvx_interleaved(remote_handle64 h, const float *a, int aLen, float *results,
+                   int resultsLen, int* debug, int debugLen) {
+
+  uint64_t cycles_start = HAP_perf_get_pcycles();
+
+  // qf32 accumulate
+  const HVX_Vector *va = reinterpret_cast<const HVX_Vector *>(a);
+  const int nvec = aLen / kLanes;
+  const int tail = aLen % kLanes;
+  (void)tail;
+
+  HVX_Vector vacc0 = Q6_V_vsplat_R(0);
+  HVX_Vector vacc1 = Q6_V_vsplat_R(0);
+  for (int i = 0; i + 1 < nvec; i += 2) {
+    vacc0 = Q6_Vqf32_vadd_Vqf32Vsf(vacc0, va[i]);
+    vacc1 = Q6_Vqf32_vadd_Vqf32Vsf(vacc1, va[i + 1]);
+  }
+  vacc0 = Q6_Vqf32_vadd_Vqf32Vqf32(vacc0, vacc1);
+  float interleaved_sum = hvx_tree_sum_qf32(vacc0);
+
+  uint64_t cycles_end = HAP_perf_get_pcycles();
+
+  results[0] = interleaved_sum;
+  debug[0] = (int)(cycles_end - cycles_start);
 
   return 0;
 }

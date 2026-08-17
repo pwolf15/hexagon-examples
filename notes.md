@@ -26,3 +26,12 @@ DSP_LIBRARY_PATH=/data/local/tmp \
 ADSP_LIBRARY_PATH=/data/local/tmp \
 ./vecadd_app; echo EXIT:$?'
 ```
+
+# VLIW notes
+
+* `vror`: vector-rotate-right
+* interleaving: 2 cycles/vector vs. 3.6
+* packet is a transaction: every instruction executes "simulatenously"; all source operands read from register state as it was before packet; all destination writes commit together at end of packet; no instruction in packet sees another same packet instructions' result
+* .new suffix: ISA forwards same packet value
+* `cycles/element = max (issue floor, latency / number of chains, memory bandwidth floor)`
+* ILP (instruction level parallelism) buys occupancy of the same pipeline
