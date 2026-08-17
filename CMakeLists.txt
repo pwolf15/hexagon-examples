@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.14)
 
 project(vecadd CXX C ASM)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 if(HEXAGON_SDK_ROOT)
     include(${HEXAGON_SDK_ROOT}/build/cmake/hexagon_fun.cmake)
 endif()
@@ -24,35 +26,50 @@ if(${OS_TYPE} MATCHES "HLOS")
 
     build_idl(inc/vecadd.idl vecadd)
 
-    add_executable(vecadd_app
-        host/main.cpp
-    )
+    # Two host binaries from the same source — A/B test for the FastRPC
+    # bounce copy. Same code, one compile-time switch.
+    add_executable(vecadd_app        host/main.cpp)
+    add_executable(vecadd_app_malloc host/main.cpp)
+    target_compile_definitions(vecadd_app        PRIVATE USE_RPCMEM=1)
+    target_compile_definitions(vecadd_app_malloc PRIVATE USE_RPCMEM=0)
+
+    set(host_apps vecadd_app vecadd_app_malloc)
 
     target_include_directories(vecadd PRIVATE ${common_incs})
-    target_include_directories(vecadd_app PRIVATE ${common_incs})
 
     choose_dsprpc(${DSP_TYPE} dsprpc)
-
     link_custom_library(vecadd ${dsprpc})
-    link_custom_library(vecadd_app ${dsprpc})
+
+    foreach(app IN LISTS host_apps)
+        target_include_directories(${app} PRIVATE ${common_incs})
+        link_custom_library(${app} ${dsprpc})
+        # SDK helper: adds ipc/fastrpc/rpcmem/inc and links the prebuilt
+        # rpcmem lib for the current HLOS target. Linked into both apps;
+        # the malloc variant just never calls it.
+        link_custom_library(${app} rpcmem)
+    endforeach()
 
     if(${CMAKE_SYSTEM_NAME} MATCHES "Android")
-        target_include_directories(vecadd_app PRIVATE
-            ${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1
-        )
-        target_link_libraries(vecadd_app vecadd c++_shared)
+        foreach(app IN LISTS host_apps)
+            target_include_directories(${app} PRIVATE
+                ${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/c++/v1
+            )
+            target_link_libraries(${app} vecadd c++_shared)
+        endforeach()
     else()
         target_link_directories(vecadd PRIVATE
             ${HEXAGON_SDK_ROOT}/ipc/fastrpc/remote/ship/UbuntuARM_aarch64
         )
-        target_link_directories(vecadd_app PRIVATE
-            ${HEXAGON_SDK_ROOT}/ipc/fastrpc/remote/ship/UbuntuARM_aarch64
-        )
         target_link_libraries(vecadd cdsprpc)
-        target_link_libraries(vecadd_app vecadd cdsprpc)
+        foreach(app IN LISTS host_apps)
+            target_link_directories(${app} PRIVATE
+                ${HEXAGON_SDK_ROOT}/ipc/fastrpc/remote/ship/UbuntuARM_aarch64
+            )
+            target_link_libraries(${app} vecadd cdsprpc)
+        endforeach()
     endif()
 
-    copy_binaries(vecadd_app vecadd)
+    copy_binaries(vecadd_app vecadd_app_malloc vecadd)
 
 else()
 
@@ -63,7 +80,7 @@ else()
         ${CMAKE_CURRENT_SOURCE_DIR}/dsp/vecadd_imp.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/dsp/vecmul_imp.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/dsp/version.c
-        /opt/hexagon/6.6.0.0/libs/worker_pool/src/worker_pool.cpp
+        ${HEXAGON_SDK_ROOT}/libs/worker_pool/src/worker_pool.cpp
     )
 
     add_library(vecadd_skel_OBJS OBJECT ${skel_srcs})
@@ -108,36 +125,6 @@ else()
         )
     endif()
 
-
-
-    #     add_library(vecadd_q SHARED
-
-    #     dsp/test_main.cpp
-
-    #     dsp/vecadd_imp.cpp
-
-    # )
-
-    # target_include_directories(vecadd_q PRIVATE
-
-    #     ${common_incs}
-
-    #     ${CMAKE_CURRENT_BINARY_DIR}
-
-    # )
-
-    # target_link_libraries(vecadd_q
-
-    #     ${HEXAGON_LIB_DIR}/${HEXAGON_ARCH}/G0/pic/libc++abi.so.1
-
-    #     ${HEXAGON_LIB_DIR}/${HEXAGON_ARCH}/G0/pic/libc++.so.1
-
-    # )
-
-    # runMainOnHexagonSim(vecadd_q)
-
     copy_binaries(vecadd_skel)
-
-    
 
 endif()

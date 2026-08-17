@@ -1,0 +1,9 @@
+{
+  "clangd.arguments": [
+    "--compile-commands-dir=${workspaceFolder}/hexagon_ReleaseG_toolv19_v68",
+    "--query-driver=/opt/hexagon/6.6.0.0/tools/HEXAGON_Tools/**/bin/hexagon-clang*"
+  ],
+  "C_Cpp.clang_format_path": "/usr/bin/clang-format",
+  "editor.formatOnSave": false,
+  "[cpp]": { "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd" }
+}
