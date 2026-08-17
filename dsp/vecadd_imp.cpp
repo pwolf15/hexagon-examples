@@ -1,8 +1,10 @@
 #include "AEEStdErr.h"
 #include "HAP_compute_res.h"
 #include "HAP_farf.h"
+#include "HAP_perf.h"
 #include "HAP_vtcm_mgr.h"
 #include "hvx_hexagon_protos.h"
+#include "inc/chain_k.h"
 #include "qurt_event.h"
 #include "qurt_hvx.h"
 #include "vecadd.h"
@@ -10,8 +12,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <hexagon_types.h>
-
-#include "inc/chain_k.h"
 
 extern "C" {
 
@@ -76,12 +76,14 @@ inline float hvx_tree_sum_qf32(HVX_Vector acc_qf32) {
 }
 
 int vecadd_sum_vec(remote_handle64 h, const float *a, int aLen, float *results,
-                   int resultsLen) {
+                   int resultsLen, int* debug, int debugLen) {
 
   // scalar accumulate
+  uint64_t cycles_start = HAP_perf_get_pcycles();
   float scalar_sum = 0.0f;
   for (int i = 0; i < aLen; ++i)
     scalar_sum += a[i];
+  uint64_t cycles_end = HAP_perf_get_pcycles();
 
   // qf32 accumulate
   const HVX_Vector *va = reinterpret_cast<const HVX_Vector *>(a);
@@ -91,6 +93,10 @@ int vecadd_sum_vec(remote_handle64 h, const float *a, int aLen, float *results,
   HVX_Vector vacc = Q6_V_vsplat_R(0);
   float vector_sum = 0.0f;
 
+  FARF(ALWAYS, "scalar reduce cycles %d", (int)(cycles_end - cycles_start));
+  debug[0] = (int)(cycles_end - cycles_start);
+
+  cycles_start = HAP_perf_get_pcycles();
   for (int i = 0; i < nvec; ++i)
     vacc = Q6_Vqf32_vadd_Vqf32Vsf(vacc, va[i]);
 
@@ -110,8 +116,12 @@ int vecadd_sum_vec(remote_handle64 h, const float *a, int aLen, float *results,
   vector_sum = hvx_tree_sum_qf32(vacc);
 #endif
 
+  cycles_end = HAP_perf_get_pcycles();
+
   results[0] = scalar_sum;
   results[1] = vector_sum;
+
+  debug[1] = (int)(cycles_end - cycles_start);
 
   return 0;
 }

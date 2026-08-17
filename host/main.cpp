@@ -292,15 +292,16 @@ int main() {
   }
   float results[2];
 
-  vecadd_sum_vec(h, a_vec.data(), 1024, results, 2);
+  int debug[2];
+  vecadd_sum_vec(h, a_vec.data(), 1024, results, 2, debug, 2);
 
   double dsum = 0.0;
   for (int i = 0; i < 1024; ++i)
     dsum += (double)a_vec[i];
   float ref = (float)dsum;
 
-  printf("\n\naccum result: %f %f host oracle %f\n\n", results[0], results[1],
-         ref);
+  printf("\n\naccum result: %f %f host oracle %f\n\ncycles scalar %d cycles hvx %d\n\n", results[0], results[1],
+         ref, debug[0], debug[1]);
 
   vecadd_close(h);
   free_buf(sa);
