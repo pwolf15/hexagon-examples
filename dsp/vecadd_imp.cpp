@@ -75,6 +75,24 @@ inline float hvx_tree_sum_qf32(HVX_Vector acc_qf32) {
   return lanes[0];
 }
 
+inline int32_t hvx_tree_sum_i32(HVX_Vector acc_u32) {
+  for (int s = kVecBytes / 2; s >= 4; s >>= 1) {
+    HVX_Vector rot = Q6_V_vror_VR(acc_u32, s);
+    acc_u32 = Q6_Vw_vadd_VwVw(acc_u32, rot);
+  }
+  alignas(128) int32_t lanes[32];
+  *reinterpret_cast<HVX_Vector*>(lanes) = acc_u32;
+  return lanes[0];
+}
+
+inline uint32_t hvx_tree_sum_u32(HVX_Vector acc) {
+  for (int s = kVecBytes / 2; s >= 4; s >>= 1)
+    acc = Q6_Vw_vadd_VwVw(acc, Q6_V_vror_VR(acc, s));
+  alignas(128) uint32_t lanes[32];
+  *reinterpret_cast<HVX_Vector*>(lanes) = acc;
+  return lanes[0];
+}
+
 int vecadd_sum_vec_scalar(remote_handle64 h, const float *a, int aLen, float *results,
                    int resultsLen, int* debug, int debugLen) {
 
@@ -160,6 +178,57 @@ int vecadd_sum_vec_hvx_interleaved(remote_handle64 h, const float *a, int aLen, 
   return 0;
 }
 
+int vecadd_dot_vec_scalar(remote_handle64 h, const uint8_t* a, int aLen, const uint8_t* b, int bLen, unsigned int* result, int* cycles) {
+
+  if (aLen != bLen) return AEE_EBADSIZE;
+
+  int64_t start_cycles = HAP_perf_get_pcycles();
+  *result = 0.0f;
+  for (int i = 0; i < aLen; ++i) {
+    *result += a[i] * b[i];
+  }
+  int64_t end_cycles = HAP_perf_get_pcycles();
+  *cycles = (int)(end_cycles - start_cycles);
+  return 0;
+}
+
+int vecadd_dot_vec_hvx(remote_handle64 h, const uint8_t* a, int aLen, const uint8_t* b, int bLen, unsigned int* result, int* cycles) {
+
+  if (aLen != bLen) return AEE_EBADSIZE;
+
+  int64_t start_cycles = HAP_perf_get_pcycles();
+  *result = 0.0f;
+  // for (int i = 0; i < aLen; ++i) {
+  //   *result += a[i] * b[i];
+  // }
+  const HVX_Vector* va = reinterpret_cast<const HVX_Vector*>(a);
+  const HVX_Vector* vb = reinterpret_cast<const HVX_Vector*>(b);
+  const int nvec = aLen / 128; 
+
+  HVX_Vector vacc = Q6_V_vsplat_R(0);
+  for (int i = 0; i < nvec; ++i) {
+    vacc = Q6_Vuw_vrmpyacc_VuwVubVub(vacc, va[i], vb[i]);
+  }
+
+  // final reduce
+  alignas(128) int32_t lanes[32];
+  *reinterpret_cast<HVX_Vector*>(lanes) = vacc;
+
+uint32_t sum = 0;
+#ifdef LINEAR_REDUCE
+  for (int i = 0; i < 32; ++i) {
+    sum += lanes[i];
+  }
+#else 
+  sum = hvx_tree_sum_u32(vacc);
+#endif
+
+  int64_t end_cycles = HAP_perf_get_pcycles();
+
+  *result = sum;
+  *cycles = (int)(end_cycles - start_cycles);
+  return 0;
+}
 // ---------------------------------------------------------------------------
 // Variant A — "the habit": chain of CHAIN_K qf32 adds, NORMALIZING BACK TO
 // IEEE sf AFTER EVERY STEP. Each step rounds to IEEE float32.
