@@ -13,6 +13,8 @@
 #include <cstring>
 #include <hexagon_types.h>
 
+extern "C" uint32_t rust_dot_u8(const uint8_t* a, const uint8_t* b, int32_t len);
+
 extern "C" {
 
 void *aligned_alloc(size_t alignment, size_t size) {
@@ -192,6 +194,8 @@ int vecadd_dot_vec_scalar(remote_handle64 h, const uint8_t* a, int aLen, const u
   return 0;
 }
 
+
+
 int vecadd_dot_vec_hvx(remote_handle64 h, const uint8_t* a, int aLen, const uint8_t* b, int bLen, unsigned int* result, int* cycles) {
 
   if (aLen != bLen) return AEE_EBADSIZE;
@@ -229,6 +233,19 @@ uint32_t sum = 0;
   *cycles = (int)(end_cycles - start_cycles);
   return 0;
 }
+
+int vecadd_dot_vec_rust(remote_handle64 h, const uint8_t* a, int aLen,
+                        const uint8_t* b, int bLen,
+                        unsigned int* result, int* cycles) {
+  if (aLen != bLen || (aLen % 128)) return AEE_EBADSIZE;
+
+  uint64_t t0 = HAP_perf_get_pcycles();
+  *result = rust_dot_u8(a, b, aLen);   // aLen in bytes == elements for u8
+  *cycles = (int)(HAP_perf_get_pcycles() - t0);
+  (void)h;
+  return 0;
+}
+
 // ---------------------------------------------------------------------------
 // Variant A — "the habit": chain of CHAIN_K qf32 adds, NORMALIZING BACK TO
 // IEEE sf AFTER EVERY STEP. Each step rounds to IEEE float32.

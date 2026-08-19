@@ -308,18 +308,19 @@ int main() {
          result_scalar, result_hvx, result_hvx_interleaved, ref, debug_scalar, debug_hvx, debug_hvx_interleaved);
 
   // dot product
-  size_t dot_vec_len = 128;
+  size_t dot_vec_len = 8192;
   std::vector<uint8_t> vec_a_u8(dot_vec_len), vec_b_u8(dot_vec_len);
   for (int i = 0; i < dot_vec_len; ++i) {
     vec_a_u8[i] = i + 1;
     vec_b_u8[i] = i * 2 + 1;
   }
-  uint32_t dot_result = 0, dot_result_hvx = 0;
-  int cycles_dot_scalar = 0, cycles_dot_hvx = 0;
+  uint32_t dot_result = 0, dot_result_hvx = 0, dot_result_rust = 0;
+  int cycles_dot_scalar = 0, cycles_dot_hvx = 0, cycles_dot_rust;
   vecadd_dot_vec_scalar(h, vec_a_u8.data(), dot_vec_len, vec_b_u8.data(), dot_vec_len, &dot_result, &cycles_dot_scalar);
   vecadd_dot_vec_hvx(h, vec_a_u8.data(), dot_vec_len, vec_b_u8.data(), dot_vec_len, &dot_result_hvx, &cycles_dot_hvx);
+  vecadd_dot_vec_rust(h, vec_a_u8.data(), dot_vec_len, vec_b_u8.data(), dot_vec_len, &dot_result_rust, &cycles_dot_rust);
 
-  printf("\n\ndot dsp scalar %lu hvx %lu cycles dot scalar %d hvx %d\n\n", dot_result, dot_result_hvx, cycles_dot_scalar, cycles_dot_hvx);
+  printf("\n\ndot dsp scalar %lu hvx %lu rust %lu cycles dot scalar %d hvx %d rust %d\n\n", dot_result, dot_result_hvx, dot_result_rust, cycles_dot_scalar, cycles_dot_hvx, cycles_dot_rust);
 
   vecadd_close(h);
   free_buf(sa);

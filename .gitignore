@@ -3,3 +3,6 @@ hexagon*
 gen
 _Release*
 *radxa*
+
+# rust kernel
+rust-kernel/target

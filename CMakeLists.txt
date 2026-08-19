@@ -110,6 +110,7 @@ else()
     )
 
     target_link_libraries(vecadd_skel
+        ${CMAKE_CURRENT_SOURCE_DIR}/rust-kernel/target/hexagon-unknown-linux-musl/release/librust_kernel.a
         ${HEXAGON_LIB_DIR}/${HEXAGON_ARCH}/G0/pic/libc++abi.so.1
         ${HEXAGON_LIB_DIR}/${HEXAGON_ARCH}/G0/pic/libc++.so.1
     )

@@ -25,6 +25,7 @@ interface vecadd : remote_handle64 {
 
   long dot_vec_scalar(in sequence<uint8> a, in sequence<uint8> b, rout unsigned long result, rout long cycles);
   long dot_vec_hvx(in sequence<uint8> a, in sequence<uint8> b, rout unsigned long result, rout long cycles);
+  long dot_vec_rust(in sequence<uint8> a, in sequence<uint8> b, rout unsigned long result, rout long cycles);
 
   long get_vtcm(rout unsigned long avail, rout unsigned long max_page, rout unsigned long pages);
 
