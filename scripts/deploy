@@ -1,9 +1,12 @@
 #!/bin/bash
+set -euo pipefail
 
-set -e
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+BOARD=${BOARD:?set BOARD, e.g. radxa@192.168.1.50}
+DEST=${DEST:-/home/radxa/vecadd}
+DSP_ARCH=${DSP_ARCH:-v68}
 
-DEST=/home/radxa/vecadd
-BOARD=radxa@<board-ip>
-
-rsync -avz _ReleaseG_aarch64/ship/vecadd_app _ReleaseG_aarch64/ship/vecadd_app_malloc hexagon_ReleaseG_toolv19_v68/ship/libvecadd_skel.so $BOARD:$DEST/
-rsync -avz _ReleaseG_aarch64/ship/libvecadd.so  $BOARD:$DEST/ship/
+rsync -avz "$ROOT"/_ReleaseG_aarch64/ship/{vecadd_app,vecadd_app_malloc} \
+           "$ROOT"/hexagon_ReleaseG_toolv19_"$DSP_ARCH"/ship/libvecadd_skel.so \
+           "$BOARD:$DEST/"
+rsync -avz "$ROOT"/_ReleaseG_aarch64/ship/libvecadd.so "$BOARD:$DEST/ship/"

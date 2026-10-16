@@ -1,9 +1,25 @@
 #!/bin/bash
+set -euo pipefail
 
-set -e
+ROOT=$(cd "$(dirname "$0")/.." && pwd)        # repo root, wherever it's checked out
+SDK=${HEXAGON_SDK_ROOT:?set HEXAGON_SDK_ROOT (e.g. /opt/hexagon/6.6.0.0)}
+DSP_ARCH=${DSP_ARCH:-v68}
 
-# CPU
-cd /workspaces/hexagon-examples && rm -rf _ReleaseG_aarch64 && mkdir _ReleaseG_aarch64 && cd _ReleaseG_aarch64 && cmake .. -G Ninja   -DOS_TYPE=HLOS   -DCMAKE_SYSTEM_NAME=UbuntuARM   -DHLOS_ARCH=64   -DDSP_TYPE=3   -DPREBUILT_LIB_DIR=UbuntuARM_aarch64   -DCMAKE_BUILD_TYPE=Release   -DHEXAGON_SDK_ROOT=/opt/hexagon/6.6.0.0   -DHEXAGON_CMAKE_ROOT=/opt/hexagon/6.6.0.0/build/cmake   -DCMAKE_C_COMPILER=/usr/bin/aarch64-linux-gnu-gcc   -DCMAKE_CXX_COMPILER=/usr/bin/aarch64-linux-gnu-g++   -DCMAKE_ASM_COMPILER=/usr/bin/aarch64-linux-gnu-gcc   -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=$PWD/ship   -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=$PWD/ship   -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=$PWD/ship && cmake --build . -v
+# CPU (aarch64 Linux host app + FastRPC stub)
+HOST_BUILD=$ROOT/_ReleaseG_aarch64
+rm -rf "$HOST_BUILD" && mkdir "$HOST_BUILD"
+cmake -S "$ROOT" -B "$HOST_BUILD" -G Ninja \
+  -DOS_TYPE=HLOS -DCMAKE_SYSTEM_NAME=UbuntuARM -DHLOS_ARCH=64 -DDSP_TYPE=3 \
+  -DPREBUILT_LIB_DIR=UbuntuARM_aarch64 -DCMAKE_BUILD_TYPE=Release \
+  -DHEXAGON_SDK_ROOT="$SDK" -DHEXAGON_CMAKE_ROOT="$SDK/build/cmake" \
+  -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
+  -DCMAKE_ASM_COMPILER=aarch64-linux-gnu-gcc \
+  -DCMAKE_LIBRARY_OUTPUT_DIRECTORY="$HOST_BUILD/ship" \
+  -DCMAKE_RUNTIME_OUTPUT_DIRECTORY="$HOST_BUILD/ship" \
+  -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY="$HOST_BUILD/ship"
+cmake --build "$HOST_BUILD"
 
-# DSP
-cd /workspaces/hexagon-examples && rm -rf hexagon_ReleaseG_toolv19_v68 && bash /opt/hexagon/6.6.0.0/build/cmake/cmake_configure.bash /workspaces/hexagon-examples hexagon BUILD=ReleaseG DSP_ARCH=v68 DOMAIN_FLAG=3 NO_QURT_INC=1
+# DSP (skel)
+rm -rf "$ROOT"/hexagon_ReleaseG_toolv19_"$DSP_ARCH"
+bash "$SDK/build/cmake/cmake_configure.bash" "$ROOT" hexagon \
+  BUILD=ReleaseG DSP_ARCH="$DSP_ARCH" DOMAIN_FLAG=3 NO_QURT_INC=1
