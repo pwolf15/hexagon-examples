@@ -1,8 +1,8 @@
-# Hexagon Kernel Playground
+# Hexagon DSP kernels on QCS6490
 
 [![hexagon-sim](https://github.com/pwolf15/hexagon-examples/actions/workflows/hexagon-sim.yml/badge.svg)](https://github.com/pwolf15/hexagon-examples/actions/workflows/hexagon-sim.yml)
 
-Repository demonstrating usage of Qualcomm SDK in both CI using Hexagon Sim and Radxa Dragon Q6A. The Q6A hosts the QCS6490 SoC, which contains cDSP v68 (renamed NPU). Built with Hexagon SDK 6.6. 
+HVX kernels in C++ and Rust, invoked over FastRPC from Linux, tested on `hexagon-sim` in CI and benchmarked on Radxa Dragon Q6A.
 
 * Docker base image with toolchain can be found [here](https://github.com/snapdragon-toolchain/docker).
 * The examples demonstrate usage of FastRPC, which coordinates invocation of DSP kernels from CPU host.
