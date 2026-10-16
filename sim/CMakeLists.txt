@@ -50,4 +50,4 @@ else()
 endif()
 
 enable_testing()
-add_test(NAME hexagon_sim COMMAND ${HEXAGON_SIM} --timing $<TARGET_FILE:test_sim>)
+add_test(NAME hexagon_sim COMMAND ${HEXAGON_SIM} --simulated_returnval --timing $<TARGET_FILE:test_sim>)
