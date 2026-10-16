@@ -35,6 +35,11 @@ if(${OS_TYPE} MATCHES "HLOS")
 
     set(host_apps vecadd_app vecadd_app_malloc)
 
+    set_target_properties(vecadd PROPERTIES LINK_FLAGS "-Wl,-soname,libvecadd.so")
+    foreach(app IN LISTS host_apps)
+        target_link_options(${app} PRIVATE "-Wl,-rpath,$ORIGIN")
+    endforeach()
+
     target_include_directories(vecadd PRIVATE ${common_incs})
 
     choose_dsprpc(${DSP_TYPE} dsprpc)
