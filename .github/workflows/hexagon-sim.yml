@@ -1,7 +1,7 @@
 name: hexagon-sim
 on: [push, pull_request]
 env:
-  SDK_VERISON: "6.6.0.0"
+  SDK_VERSION: "6.6.0.0"
 jobs:
   sim:
     runs-on: ubuntu-22.04
@@ -10,12 +10,12 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y cmake ninja-build unzip wget libncurses5
       - uses: actions/cache@v4
         id: sdk
-        with: { path: HEXAGON_SDK, key: kexagon-sdk-${{ env.SDK_VERSION }}}
-      - if: steps.sdk.output.cache-hit != 'true'
+        with: { path: Hexagon_SDK, key: hexagon-sdk-${{ env.SDK_VERSION }}}
+      - if: output.cache-hit != 'true'
         run: |
           wget -q -O sdk.zip "https://softwarecenter.qualcomm.com/api/download/software/sdks/Hexagon_SDK/Linux/Debian/$SDK_VERSION/Hexagon_SDK_lnx.zip"
           unzip -q sdk.zip && rm sdk.zip
       - run: echo "HEXAGON_SDK_ROOT=$PWD/Hexagon_SDK/$SDK_VERSION" >> $GITHUB_ENV
-      - run: cmake -S sim -B build-sim -G ninja
+      - run: cmake -S sim -B build-sim -G Ninja
       - run: cmake --build build-sim
       - run: ctest --test-dir build-sim --output-on-failure
