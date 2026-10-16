@@ -2,10 +2,9 @@
 
 [![hexagon-sim](https://github.com/pwolf15/hexagon-examples/actions/workflows/hexagon-sim.yml/badge.svg)](https://github.com/pwolf15/hexagon-examples/actions/workflows/hexagon-sim.yml)
 
-HVX kernels in C++ and Rust, invoked over FastRPC from Linux, tested on `hexagon-sim` in CI and benchmarked on Radxa Dragon Q6A.
-
-* Docker base image with toolchain can be found [here](https://github.com/snapdragon-toolchain/docker).
-* The examples demonstrate usage of FastRPC, which coordinates invocation of DSP kernels from CPU host.
+* Kernels run on the cDSP (v68) and are called from a Linux host app over FastRPC; the IDL in `inc/` defines the interface, `qaic` generates the stub and skel.
+* Tests run on `hexagon-sim` in Github actions; cycle counts come from the board.
+* Development environment: `Dockerfile` + `.devcontainer/` (SDK 6.6, aarch64 cross tools, Rust nightly), based on [snapdragon-toolchain/docker](https://github.com/snapdragon-toolchain/docker); see `docs/toolchain.md`
 
 ## Build and run
 
@@ -23,10 +22,10 @@ Runs `dsp/test_main.cpp` on `hexagon-sim` (v68)
 
 ### Board (Radxa Dragon Q6A)
 
-```
+``` shell
 scripts/build 
 BOARD=radxa@<ip> scripts/deploy
-ssh radxa@<ip> 'cd ~/vecadd && ./vecadd_app`
+ssh radxa@<ip> 'cd ~/vecadd && ./vecadd_app'
 ```
 
 ## Results (Q6A, cDSP v68)
@@ -48,13 +47,13 @@ Cycles from `HAP_perf_get_pcycles` around the kernel call. At small `N`, overall
 ## Supported Languages for Hexagon
 
 * LLVM toolchain => [here](https://github.com/qualcomm/toolchain_for_hexagon/tree/main)
-* supports C++, Rust, Zig.
+* open toolchain supports C++, Rust, Zig.
 
 ## Notes on HVX
 
 * What features of the compute DSP make it energy efficient?
     * VLIW: very-long instruction word enables instruction level parallelism (ILP)
-        * packets of up to four instructions, which are issued and commited togther
+        * packets of up to four instructions, which are issued and committed togther
         * compiler schedules packets to maximize utilization; programmer must be aware of dependencies to minimize 
     * co-processor model: sw threads mapped to 4-6 scalar hw threads (arch-specific); hw threads use contexts to obtain access to HVX/HMX
     * Hexagon Vectorized Extensions (HVX) have 1024-bit vector registers
@@ -70,6 +69,6 @@ Cycles from `HAP_perf_get_pcycles` around the kernel call. At small `N`, overall
 * interleaving: 2 cycles/vector vs. 3.6
 * every instruction executes simultaneously: 
     * all source operands read from register state as it was before packet
-    * all destination wries commit togther at end of packet; no instruction in packet sees another packet instructions' result
+    * all destination writes commit togther at end of packet; no instruction in packet sees another packet instructions' result
 * ILP (instruction level parallelism) increases occupancy of same pipeline
 * `cycles/element = max (issue floor, latency / number of chains, memory bandwidth floor)`
