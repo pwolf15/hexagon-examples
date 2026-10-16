@@ -1,5 +1,7 @@
 # Hexagon Kernel Playground
 
+[![hexagon-sim](https://github.com/pwolf15/hexagon-examples/actions/workflows/hexagon-sim.yml/badge.svg)](https://github.com/pwolf15/hexagon-examples/actions/workflows/hexagon-sim.yml)
+
 Repository demonstrating usage of Qualcomm SDK in both CI using Hexagon Sim and Radxa Dragon Q6A. The Q6A hosts the QCS6490 SoC, which contains cDSP v68 (renamed NPU). Built with Hexagon SDK 6.6. 
 
 * Docker base image with toolchain can be found [here](https://github.com/snapdragon-toolchain/docker).
