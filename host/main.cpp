@@ -67,8 +67,6 @@ int main() {
   printf("qf32 chain experiment: c = a + %d*b, N=%d, variant=%s\n", CHAIN_K, N,
          USE_RPCMEM ? "rpcmem" : "malloc");
 
-  setenv("ADSP_LIBRARY_PATH", "/home/radxa/vecadd", 1);
-
   remote_rpc_control_unsigned_module data{};
   data.domain = 3;
   data.enable = 1;
