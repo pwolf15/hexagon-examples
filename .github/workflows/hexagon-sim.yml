@@ -15,8 +15,9 @@ jobs:
           key: hexagon-sdk-${{ env.SDK_VERSION }}
       - if: steps.sdk.outputs.cache-hit != 'true'
         run: |
-          wget  -O sdk.zip "https://softwarecenter.qualcomm.com/api/download/software/sdks/Hexagon_SDK/Linux/Debian/$SDK_VERSION/Hexagon_SDK_lnx.zip"
-          unzip -q sdk.zip && rm sdk.zip
+          wget -O sdk.tar.xz "https://github.com/snapdragon-toolchain/hexagon-sdk/releases/download/v$SDK_VERSION/hexagon-sdk-v$SDK_VERSION-amd64-lnx.tar.xz"
+          mkdir -p Hexagon_SDK && tar -xJf sdk.tar.xz -C Hexagon_SDK && rm sdk.tar.xz
+          ls Hexagon_SDK
       - run: echo "HEXAGON_SDK_ROOT=$PWD/Hexagon_SDK/$SDK_VERSION" >> $GITHUB_ENV
       - run: cmake -S sim -B build-sim -G Ninja
       - run: cmake --build build-sim
