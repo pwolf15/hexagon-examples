@@ -7,6 +7,12 @@ Repository demonstrating usage of Qualcomm SDK in both CI using Hexagon Sim and 
 * Docker base image with toolchain can be found [here](https://github.com/snapdragon-toolchain/docker).
 * The examples demonstrate usage of FastRPC, which coordinates invocation of DSP kernels from CPU host.
 
+## Build and run
+
+Simulator: `cmake -S sim -B build-sim -G Ninja && cmake --build build-sim && ctest --test-dir build-sim`
+Board: `scripts/build` (aarch64 host + v68 skel), `scripts/deploy` (rsync to the Q6A)
+Requires `HEXAGON_SDK_ROOT`: the devcontainer provides it.
+
 ## Kernels
 
 * `f32 sum`: scalar, HVX, interleaved
