@@ -12,8 +12,8 @@ jobs:
         id: sdk
         with: 
           path: Hexagon_SDK
-          key: hexagon-sdk-${{ env.SDK_VERSION }}}
-      - if: steps.sdk.output.cache-hit != 'true'
+          key: hexagon-sdk-${{ env.SDK_VERSION }}
+      - if: steps.sdk.outputs.cache-hit != 'true'
         run: |
           wget -q -O sdk.zip "https://softwarecenter.qualcomm.com/api/download/software/sdks/Hexagon_SDK/Linux/Debian/$SDK_VERSION/Hexagon_SDK_lnx.zip"
           unzip -q sdk.zip && rm sdk.zip
