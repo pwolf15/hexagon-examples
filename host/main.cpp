@@ -11,6 +11,7 @@
 #include <cstring>
 #include <vector>
 
+#include "inc/ulp.h"
 #include "inc/chain_k.h"
 #include "remote.h"
 #include "vecadd.h"
@@ -47,20 +48,6 @@ static void free_buf(float *p) {
 #else
   free(p);
 #endif
-}
-
-// Map float bits onto a monotonic integer line so ULP distance is a
-// subtraction.
-static int64_t float_key(float f) {
-  int32_t i;
-  std::memcpy(&i, &f, sizeof i);
-  return i >= 0 ? (int64_t)i : (int64_t)INT32_MIN - i;
-}
-
-// ULP distance between a computed float and the correctly-rounded double ref.
-static int64_t ulp_err(float x, double ref) {
-  int64_t d = float_key(x) - float_key((float)ref);
-  return d < 0 ? -d : d;
 }
 
 int main() {
