@@ -1,8 +1,27 @@
 android_ReleaseG*
-hexagon*
+hexagon_Release*
+hexagon_Debug*
 gen
 _Release*
 *radxa*
 
 # rust kernel
 rust-kernel/target
+HEXAGON_SDK/
+HEXAGON_TOOLS/
+HEXKL_DIR/
+HOST_TOOLCHAIN/
+LLVM_DIR/
+build-sim/
+*.elf
+*.asm
+HEXAGON_SDK/
+HEXAGON_TOOLS/
+HEXKL_DIR/
+HOST_TOOLCHAIN/
+LLVM_DIR/
+build-sim/
+*.elf
+*.asm
+
+hexagon-mlir

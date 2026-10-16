@@ -1,0 +1,9 @@
+[build]
+target = "hexagon-unknown-linux-musl"
+
+[target.hexagon-unknown-linux-musl]
+linker = "/opt/clang+llvm-22.1.8-cross-hexagon-unknown-linux-musl/x86_64-ubuntu-22.04/bin/hexagon-unknown-linux-musl-clang"  # your actual path
+rustflags = ["-Ctarget-cpu=hexagonv68", "-Ctarget-feature=+hvxv68,+hvx-length128b"]
+
+[unstable]
+build-std = ["core", "panic_abort"]
