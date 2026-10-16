@@ -9,9 +9,34 @@ HVX kernels in C++ and Rust, invoked over FastRPC from Linux, tested on `hexagon
 
 ## Build and run
 
-Simulator: `cmake -S sim -B build-sim -G Ninja && cmake --build build-sim && ctest --test-dir build-sim`
-Board: `scripts/build` (aarch64 host + v68 skel), `scripts/deploy` (rsync to the Q6A)
-Requires `HEXAGON_SDK_ROOT`: the devcontainer provides it.
+Requires `HEXAGON_SDK_ROOT` (the devcontainer sets it).
+
+### Simulator
+
+``` shell
+cmake -S sim -B build-sim -G Ninja
+cmake --build build-sim
+ctest --test-dir build-sim --output-on-failure
+```
+
+Runs `dsp/test_main.cpp` on `hexagon-sim` (v68)
+
+### Board (Radxa Dragon Q6A)
+
+```
+scripts/build 
+BOARD=radxa@<ip> scripts/deploy
+ssh radxa@<ip> 'cd ~/vecadd && ./vecadd_app`
+```
+
+## Results (Q6A, cDSP v68)
+
+| kernel | N | scalar | HVX | Rust | correctness vs. double ref |
+| --- | --- | --- | --- | --- | --- |
+| f32 sum | 1024 | 17,692 | 2,533 | - | +1 ULP (all variants) |
+| u8 dot product | 8192 | 112,187 | 6,162 | 7,080 | bit-exact (all variants) |
+
+Cycles from `HAP_perf_get_pcycles` around the kernel call. At small `N`, overall numbers dominated by call overhead and final reduction. 
 
 ## Kernels
 
