@@ -44,8 +44,6 @@ Cycles from `HAP_perf_get_pcycles` around the kernel call. At small `N`, overall
 
 * `f32 sum`: scalar, HVX, interleaved
 * `u8 dot product`: scalar, `vrmpyacc`, Rust
-* `qf32 rounding`: Qualcomm DSPs include custom Qualcomm floating point implementation which uses Von Neumann rounding. qf32 skips normalization between adds
-* `fir filter`
 
 ## Supported Languages for Hexagon
 
@@ -69,7 +67,6 @@ Cycles from `HAP_perf_get_pcycles` around the kernel call. At small `N`, overall
 ### VLIW
 
 * each packet is a transaction
-* interleaving: 2 cycles/vector vs. 3.6
 * every instruction executes simultaneously: 
     * all source operands read from register state as it was before packet
     * all destination writes commit together at end of packet; no instruction in packet sees another packet instructions' result
