@@ -15,7 +15,7 @@ jobs:
           key: hexagon-sdk-${{ env.SDK_VERSION }}
       - if: steps.sdk.outputs.cache-hit != 'true'
         run: |
-          wget -O -q sdk.tar.xz "https://github.com/snapdragon-toolchain/hexagon-sdk/releases/download/v$SDK_VERSION/hexagon-sdk-v$SDK_VERSION-amd64-lnx.tar.xz"
+          wget -nv -O sdk.tar.xz "https://github.com/snapdragon-toolchain/hexagon-sdk/releases/download/v$SDK_VERSION/hexagon-sdk-v$SDK_VERSION-amd64-lnx.tar.xz"
           mkdir -p Hexagon_SDK && tar -xJf sdk.tar.xz -C Hexagon_SDK && rm sdk.tar.xz
           ls Hexagon_SDK
       - run: echo "HEXAGON_SDK_ROOT=$PWD/Hexagon_SDK/$SDK_VERSION" >> $GITHUB_ENV
