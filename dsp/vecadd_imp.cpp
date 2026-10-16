@@ -1,3 +1,8 @@
+#include <hexagon_types.h>
+
+#include <cstdlib>
+#include <cstring>
+
 #include "AEEStdErr.h"
 #include "HAP_compute_res.h"
 #include "HAP_farf.h"
@@ -9,36 +14,31 @@
 #include "qurt_hvx.h"
 #include "vecadd.h"
 #include "worker_pool.h"
-#include <cstdlib>
-#include <cstring>
-#include <hexagon_types.h>
 
 extern "C" uint32_t rust_dot_u8(const uint8_t* a, const uint8_t* b, int32_t len);
 
 extern "C" {
 
-void *aligned_alloc(size_t alignment, size_t size) {
-  void *p = 0;
+void* aligned_alloc(size_t alignment, size_t size) {
+  void* p = 0;
   return posix_memalign(&p, alignment, size) ? 0 : p;
 }
 
-int vecadd_open(const char *uri, remote_handle64 *handle) {
+int vecadd_open(const char* uri, remote_handle64* handle) {
   (void)uri;
-  void *p = std::malloc(1);
-  if (!p)
-    return AEE_ENOMEMORY;
+  void* p = std::malloc(1);
+  if (!p) return AEE_ENOMEMORY;
   *handle = (remote_handle64)p;
   return AEE_SUCCESS;
 }
 
 int vecadd_close(remote_handle64 handle) {
-  if (handle)
-    std::free((void *)handle);
+  if (handle) std::free((void*)handle);
   return AEE_SUCCESS;
 }
 
-int vecadd_get_vtcm(remote_handle64 h, unsigned int *avail,
-                    unsigned int *max_page, unsigned int *pages) {
+int vecadd_get_vtcm(remote_handle64 h, unsigned int* avail, unsigned int* max_page,
+                    unsigned int* pages) {
   (void)h;
   unsigned int a = 0, m = 0, p = 0;
   int rc = HAP_query_avail_VTCM(&a, &m, &p);
@@ -88,48 +88,42 @@ inline int32_t hvx_tree_sum_i32(HVX_Vector acc_u32) {
 }
 
 inline uint32_t hvx_tree_sum_u32(HVX_Vector acc) {
-  for (int s = kVecBytes / 2; s >= 4; s >>= 1)
-    acc = Q6_Vw_vadd_VwVw(acc, Q6_V_vror_VR(acc, s));
+  for (int s = kVecBytes / 2; s >= 4; s >>= 1) acc = Q6_Vw_vadd_VwVw(acc, Q6_V_vror_VR(acc, s));
   alignas(128) uint32_t lanes[32];
   *reinterpret_cast<HVX_Vector*>(lanes) = acc;
   return lanes[0];
 }
 
-int vecadd_sum_vec_scalar(remote_handle64 h, const float *a, int aLen, float *results,
-                   int resultsLen, int* debug, int debugLen) {
-
+int vecadd_sum_vec_scalar(remote_handle64 h, const float* a, int aLen, float* results,
+                          int resultsLen, int* debug, int debugLen) {
   // scalar accumulate
   uint64_t cycles_start = HAP_perf_get_pcycles();
   float scalar_sum = 0.0f;
-  for (int i = 0; i < aLen; ++i)
-    scalar_sum += a[i];
+  for (int i = 0; i < aLen; ++i) scalar_sum += a[i];
   uint64_t cycles_end = HAP_perf_get_pcycles();
 
   debug[0] = (int)(cycles_end - cycles_start);
   results[0] = scalar_sum;
-  
+
   return 0;
 }
 
-int vecadd_sum_vec_hvx(remote_handle64 h, const float *a, int aLen, float *results,
-                   int resultsLen, int* debug, int debugLen) {
-
+int vecadd_sum_vec_hvx(remote_handle64 h, const float* a, int aLen, float* results, int resultsLen,
+                       int* debug, int debugLen) {
   // scalar accumulate
   uint64_t cycles_start = HAP_perf_get_pcycles();
 
   // qf32 accumulate
-  const HVX_Vector *va = reinterpret_cast<const HVX_Vector *>(a);
+  const HVX_Vector* va = reinterpret_cast<const HVX_Vector*>(a);
   const int nvec = aLen / kLanes;
   const int tail = aLen % kLanes;
 
   HVX_Vector vacc = Q6_V_vsplat_R(0);
 
+  for (int i = 0; i < nvec; ++i) vacc = Q6_Vqf32_vadd_Vqf32Vsf(vacc, va[i]);
 
-  for (int i = 0; i < nvec; ++i)
-    vacc = Q6_Vqf32_vadd_Vqf32Vsf(vacc, va[i]);
-
-  if (tail) { // unaligned load + valign splice
-    const float *tp = a + nvec * kLanes;
+  if (tail) {  // unaligned load + valign splice
+    const float* tp = a + nvec * kLanes;
     HVX_Vector in = *reinterpret_cast<const HVX_UVector*>(tp);
     HVX_Vector pad = Q6_V_vsplat_R(0);
     HVX_Vector t = Q6_V_valign_VVR(in, pad, tail * 4);
@@ -138,9 +132,8 @@ int vecadd_sum_vec_hvx(remote_handle64 h, const float *a, int aLen, float *resul
   // IEEE final reduction
 #ifdef LINEAR_REDUCE
   const HVX_Vector vsf = Q6_Vsf_equals_Vqf32(vacc);
-  for (int i = 0; i < kLanes; ++i)
-    vector_sum += hvx_lane(vsf, i);
-#else   
+  for (int i = 0; i < kLanes; ++i) vector_sum += hvx_lane(vsf, i);
+#else
   float vector_sum = hvx_tree_sum_qf32(vacc);
 #endif
 
@@ -152,13 +145,12 @@ int vecadd_sum_vec_hvx(remote_handle64 h, const float *a, int aLen, float *resul
   return 0;
 }
 
-int vecadd_sum_vec_hvx_interleaved(remote_handle64 h, const float *a, int aLen, float *results,
-                   int resultsLen, int* debug, int debugLen) {
-
+int vecadd_sum_vec_hvx_interleaved(remote_handle64 h, const float* a, int aLen, float* results,
+                                   int resultsLen, int* debug, int debugLen) {
   uint64_t cycles_start = HAP_perf_get_pcycles();
 
   // qf32 accumulate
-  const HVX_Vector *va = reinterpret_cast<const HVX_Vector *>(a);
+  const HVX_Vector* va = reinterpret_cast<const HVX_Vector*>(a);
   const int nvec = aLen / kLanes;
   const int tail = aLen % kLanes;
   (void)tail;
@@ -180,8 +172,8 @@ int vecadd_sum_vec_hvx_interleaved(remote_handle64 h, const float *a, int aLen, 
   return 0;
 }
 
-int vecadd_dot_vec_scalar(remote_handle64 h, const uint8_t* a, int aLen, const uint8_t* b, int bLen, unsigned int* result, int* cycles) {
-
+int vecadd_dot_vec_scalar(remote_handle64 h, const uint8_t* a, int aLen, const uint8_t* b, int bLen,
+                          unsigned int* result, int* cycles) {
   if (aLen != bLen) return AEE_EBADSIZE;
 
   int64_t start_cycles = HAP_perf_get_pcycles();
@@ -194,10 +186,8 @@ int vecadd_dot_vec_scalar(remote_handle64 h, const uint8_t* a, int aLen, const u
   return 0;
 }
 
-
-
-int vecadd_dot_vec_hvx(remote_handle64 h, const uint8_t* a, int aLen, const uint8_t* b, int bLen, unsigned int* result, int* cycles) {
-
+int vecadd_dot_vec_hvx(remote_handle64 h, const uint8_t* a, int aLen, const uint8_t* b, int bLen,
+                       unsigned int* result, int* cycles) {
   if (aLen != bLen) return AEE_EBADSIZE;
 
   int64_t start_cycles = HAP_perf_get_pcycles();
@@ -207,7 +197,7 @@ int vecadd_dot_vec_hvx(remote_handle64 h, const uint8_t* a, int aLen, const uint
   // }
   const HVX_Vector* va = reinterpret_cast<const HVX_Vector*>(a);
   const HVX_Vector* vb = reinterpret_cast<const HVX_Vector*>(b);
-  const int nvec = aLen / 128; 
+  const int nvec = aLen / 128;
 
   HVX_Vector vacc = Q6_V_vsplat_R(0);
   for (int i = 0; i < nvec; ++i) {
@@ -218,12 +208,12 @@ int vecadd_dot_vec_hvx(remote_handle64 h, const uint8_t* a, int aLen, const uint
   alignas(128) int32_t lanes[32];
   *reinterpret_cast<HVX_Vector*>(lanes) = vacc;
 
-uint32_t sum = 0;
+  uint32_t sum = 0;
 #ifdef LINEAR_REDUCE
   for (int i = 0; i < 32; ++i) {
     sum += lanes[i];
   }
-#else 
+#else
   sum = hvx_tree_sum_u32(vacc);
 #endif
 
@@ -234,13 +224,12 @@ uint32_t sum = 0;
   return 0;
 }
 
-int vecadd_dot_vec_rust(remote_handle64 h, const uint8_t* a, int aLen,
-                        const uint8_t* b, int bLen,
+int vecadd_dot_vec_rust(remote_handle64 h, const uint8_t* a, int aLen, const uint8_t* b, int bLen,
                         unsigned int* result, int* cycles) {
   if (aLen != bLen || (aLen % 128)) return AEE_EBADSIZE;
 
   uint64_t t0 = HAP_perf_get_pcycles();
-  *result = rust_dot_u8(a, b, aLen);   // aLen in bytes == elements for u8
+  *result = rust_dot_u8(a, b, aLen);  // aLen in bytes == elements for u8
   *cycles = (int)(HAP_perf_get_pcycles() - t0);
   (void)h;
   return 0;
@@ -251,18 +240,16 @@ int vecadd_dot_vec_rust(remote_handle64 h, const uint8_t* a, int aLen,
 // IEEE sf AFTER EVERY STEP. Each step rounds to IEEE float32.
 //   c = ((((a + b) + b) + ... ) + b        (CHAIN_K additions of b)
 // ---------------------------------------------------------------------------
-int vecadd_add_vec(remote_handle64 h, const float *a, int aLen, const float *b,
-                   int bLen, float *result, int resultLen) {
+int vecadd_add_vec(remote_handle64 h, const float* a, int aLen, const float* b, int bLen,
+                   float* result, int resultLen) {
   (void)h;
-  if (!a || !b || !result)
-    return AEE_EBADPARM;
-  if (aLen != bLen || resultLen != aLen)
-    return AEE_EBADPARM;
+  if (!a || !b || !result) return AEE_EBADPARM;
+  if (aLen != bLen || resultLen != aLen) return AEE_EBADPARM;
 
   int nv = aLen / 32;
-  const HVX_Vector *va = (const HVX_Vector *)a;
-  const HVX_Vector *vb = (const HVX_Vector *)b;
-  HVX_Vector *vc = (HVX_Vector *)result;
+  const HVX_Vector* va = (const HVX_Vector*)a;
+  const HVX_Vector* vb = (const HVX_Vector*)b;
+  HVX_Vector* vc = (HVX_Vector*)result;
 
   for (int i = 0; i < nv; ++i) {
     HVX_Vector acc = va[i];

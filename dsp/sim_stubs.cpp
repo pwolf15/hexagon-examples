@@ -2,16 +2,17 @@
 // Provides the QuRT/HAP symbols the kernels call; the sim's --timing
 // report is the cycle count, so these can return trivial values.
 #include <cstdint>
+
 #include "HAP_perf.h"
 #include "HAP_vtcm_mgr.h"
 #include "qurt.h"
 
 extern "C" {
 
-
-int HAP_query_avail_VTCM(unsigned int* avail, unsigned int* max_page,
-                         unsigned int* pages) {
-  *avail = 0; *max_page = 0; *pages = 0;
+int HAP_query_avail_VTCM(unsigned int* avail, unsigned int* max_page, unsigned int* pages) {
+  *avail = 0;
+  *max_page = 0;
+  *pages = 0;
   return 0;
 }
 

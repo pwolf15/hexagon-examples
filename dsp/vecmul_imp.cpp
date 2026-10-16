@@ -1,9 +1,9 @@
-#include "AEEStdErr.h"
-#include "hvx_hexagon_protos.h"
-#include "vecadd.h"
 #include <hexagon_types.h>
 
+#include "AEEStdErr.h"
+#include "hvx_hexagon_protos.h"
 #include "inc/chain_k.h"
+#include "vecadd.h"
 
 // ---------------------------------------------------------------------------
 // TEMPORARILY REPURPOSED for the qf32 experiment: this is NOT a multiply.
@@ -14,18 +14,16 @@
 // unnormalized representation; only one IEEE rounding total.
 // ---------------------------------------------------------------------------
 extern "C" {
-int vecadd_mul_vec(remote_handle64 h, const float *a, int aLen, const float *b,
-                   int bLen, float *result, int resultLen) {
+int vecadd_mul_vec(remote_handle64 h, const float* a, int aLen, const float* b, int bLen,
+                   float* result, int resultLen) {
   (void)h;
-  if (!a || !b || !result)
-    return AEE_EBADPARM;
-  if (aLen != bLen || resultLen != aLen)
-    return AEE_EBADPARM;
+  if (!a || !b || !result) return AEE_EBADPARM;
+  if (aLen != bLen || resultLen != aLen) return AEE_EBADPARM;
 
   int nv = aLen / 32;
-  const HVX_Vector *va = (const HVX_Vector *)a;
-  const HVX_Vector *vb = (const HVX_Vector *)b;
-  HVX_Vector *vc = (HVX_Vector *)result;
+  const HVX_Vector* va = (const HVX_Vector*)a;
+  const HVX_Vector* vb = (const HVX_Vector*)b;
+  HVX_Vector* vc = (HVX_Vector*)result;
 
   for (int i = 0; i < nv; ++i) {
     // First add takes two sf inputs and produces qf32...
